@@ -20,7 +20,6 @@
 
         * {
             box-sizing: border-box;
-            /* タップ時のデフォルトの青いハイライトを消す */
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -34,7 +33,6 @@
             min-height: 100vh;
             margin: 0;
             padding: 15px;
-            /* 画面全体のズームを防ぐ */
             touch-action: manipulation;
         }
 
@@ -96,6 +94,7 @@
             font-weight: 600; 
             outline: none; 
             width: 100%;
+            -webkit-appearance: none;
         }
 
         .btn { 
@@ -107,7 +106,8 @@
             cursor: pointer; 
             border: 1.5px solid transparent; 
             text-align: center; 
-            transition: all 0.2s ease; 
+            transition: all 0.2s ease;
+            -webkit-appearance: none;
         }
         .btn-taiman.on { background: #0071e3; color: #fff; }
         .btn-taiman.off { background: #fff; color: #0071e3; border-color: #0071e3; }
@@ -149,7 +149,13 @@
         .res-main { flex-grow: 1; font-weight: 700; font-size: 14px; }
         .res-sub { font-size: 10px; color: var(--apple-gray); text-align: right; line-height: 1.2; }
 
-        /* メインボタンのスタイルと沈むアクション */
+        /* 沈むアクション用のスタイル */
+        .main-button, .secondary-button { 
+            -webkit-appearance: none;
+            transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.1s ease;
+            user-select: none;
+        }
+
         .main-button { 
             background: var(--apple-blue); 
             color: #fff; 
@@ -162,18 +168,15 @@
             cursor: pointer; 
             box-shadow: 0 4px 15px rgba(0, 113, 227, 0.3); 
             margin-bottom: 12px; 
-            transition: all 0.1s ease;
-            /* スマホでのタップ反応を良くする */
-            touch-action: manipulation;
-        }
-        
-        /* PC・スマホ共通の沈むアクション */
-        .main-button:active { 
-            transform: scale(0.94); 
-            box-shadow: 0 2px 8px rgba(0, 113, 227, 0.2);
-            background-color: #005bb5;
         }
 
+        /* activeクラス (JS制御)  または :active擬似クラス */
+        .main-button.active, .main-button:active { 
+            transform: scale(0.92) !important; 
+            background-color: #005bb5 !important;
+            box-shadow: 0 2px 4px rgba(0, 113, 227, 0.2) !important;
+        }
+        
         .secondary-button { 
             background: #fff; 
             color: var(--apple-blue); 
@@ -185,16 +188,16 @@
             font-weight: 700; 
             cursor: pointer; 
             display: none; 
-            transition: all 0.1s ease;
-            touch-action: manipulation;
         }
-        .secondary-button:active { 
-            transform: scale(0.96); 
-            background: #f0f7ff; 
+        .secondary-button.active, .secondary-button:active { 
+            transform: scale(0.96) !important; 
+            background: #f0f7ff !important; 
         }
     </style>
 </head>
-<body ontouchstart=""> <div class="card">
+<body>
+
+<div class="card">
     <div id="setupSection" style="display: block;">
         <h1>モル振り</h1>
         <div class="grid-row">
@@ -221,8 +224,8 @@
             <div class="format-row"><div class="row-number">7</div><div class="format-buttons"><label class="format-item"><input type="checkbox" checked value="7" data-type="mitsudomoe" data-label="2 vs 2 vs 3" class="format-check">2 vs 2 vs 3</label><label class="format-item"><input type="checkbox" checked value="7" data-type="taiman" data-label="3 vs 4" class="format-check">3 vs 4</label></div></div>
             <div class="format-row"><div class="row-number">8</div><div class="format-buttons"><label class="format-item"><input type="checkbox" checked value="8" data-type="mitsudomoe" data-label="2 vs 3 vs 3" class="format-check">2 vs 3 vs 3</label><label class="format-item"><input type="checkbox" checked value="8" data-type="taiman" data-label="4 vs 4" class="format-check">4 vs 4</label></div></div>
         </div>
-        <button class="main-button" onclick="startLottery()">スタート</button>
-        <button id="viewLastResultBtn" class="secondary-button" onclick="showResultSection()">前回の結果</button>
+        <button class="main-button touch-btn" onclick="startLottery()">スタート</button>
+        <button id="viewLastResultBtn" class="secondary-button touch-btn" onclick="showResultSection()">前回の結果</button>
     </div>
 
     <div id="drawSection">
@@ -242,13 +245,13 @@
                 <div class="draw-format-value" style="text-align:center;" id="resFormat">-</div>
             </div>
         </div>
-        <button id="nextBtn" class="main-button" onclick="showNext()">タップ</button>
+        <button id="nextBtn" class="main-button touch-btn" onclick="showNext()">タップ</button>
     </div>
 
     <div id="resultSection">
         <h1>結果</h1>
         <div class="res-list" id="resList"></div>
-        <button class="main-button" onclick="backToSetup()">新しく始める</button>
+        <button class="main-button touch-btn" onclick="backToSetup()">新しく始める</button>
     </div>
 </div>
 
@@ -259,6 +262,13 @@
     const checkboxes = document.querySelectorAll('.format-check');
     const nextBtn = document.getElementById('nextBtn');
     const viewLastResultBtn = document.getElementById('viewLastResultBtn');
+
+    // iOS Safari用の沈むアクション処理
+    document.querySelectorAll('.touch-btn').forEach(btn => {
+        btn.addEventListener('touchstart', () => btn.classList.add('active'), {passive: true});
+        btn.addEventListener('touchend', () => btn.classList.remove('active'), {passive: true});
+        btn.addEventListener('touchcancel', () => btn.classList.remove('active'), {passive: true});
+    });
 
     let allPlayerRoles = [];
     let currentDrawIndex = 0;
@@ -312,7 +322,6 @@
         bestResult.forEach((court, idx) => {
             const teamCounts = court.label.split(' vs ').map(s => parseInt(s));
             const isAllSolo = teamCounts.every(c => c === 1);
-            
             teamCounts.forEach((count, tIdx) => {
                 const teamLetter = String.fromCharCode(65 + tIdx);
                 for(let i=0; i<count; i++) {
@@ -377,7 +386,6 @@
 
     function showResultSection() {
         if (finalHistory.length === 0) return;
-        
         setupSection.style.display = 'none';
         drawSection.style.display = 'none';
         resultSection.style.display = 'block';
@@ -394,7 +402,6 @@
             `;
             list.appendChild(div);
         });
-        
         viewLastResultBtn.style.display = 'block';
     }
 
